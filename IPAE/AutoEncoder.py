@@ -1,5 +1,8 @@
+import torch
 from torch import nn
 from torch import tensor, Tensor
+
+from . import MatrixEstimator
 
 ''' This class contains a Layer-wise training '''
 class AutoEncoder(nn.Module):
@@ -8,16 +11,18 @@ class AutoEncoder(nn.Module):
 
         self.encode = nn.Sequential(
                 nn.Dropout(p=0.2),
-                # Noise(),
-                nn.Linear(n_in, n_out), 
-                nn.ReLU(inplace=True) if g1_relu else nn.Identity()
+                nn.Linear(n_in, n_out),
+                nn.ReLU(inplace=True) if g1_relu else nn.Identity(),
+                # nn.ReLU(inplace=True) if g1_relu else nn.Identity(),
+                MatrixEstimator(gamma=0.8)
             )
 
         self.decode = nn.Sequential(
                 nn.Dropout(p=0.2),
-                # Noise(),
                 nn.Linear(n_out, n_in),
-                nn.ReLU(inplace=True) if g2_relu else nn.Identity()
+                nn.ReLU(inplace=True) if g2_relu else nn.Identity(),
+                # nn.ReLU(inplace=True) if g2_relu else nn.Identity(),
+                MatrixEstimator(gamma=0.8)
             )
 
         for m in self.modules():
@@ -29,7 +34,7 @@ class AutoEncoder(nn.Module):
     def get_encode(self, dropout=False):
         encode = []
         for module in self.encode:
-            if dropout or isinstance(module, nn.Linear) or isinstance(module, nn.ReLU):
+            if dropout or isinstance(module, (nn.Linear, nn.ReLU, MatrixEstimator)):
                 encode.append(module)
         
         return nn.Sequential(*encode)
@@ -37,7 +42,7 @@ class AutoEncoder(nn.Module):
     def get_decode(self, dropout=False):
         decode = []
         for module in self.decode:
-            if dropout or isinstance(module, nn.Linear) or isinstance(module, nn.ReLU):
+            if dropout or isinstance(module, (nn.Linear, nn.ReLU, MatrixEstimator)):
                 decode.append(module)
         
         return nn.Sequential(*decode)

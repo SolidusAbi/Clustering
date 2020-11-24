@@ -1,3 +1,6 @@
 [submodule "pt-dec"]
 	path = pt-dec
 	url = https://github.com/vlukiyanov/pt-dec.git
+[submodule "ipdl"]
+	path = ipdl
+	url = https://github.com/SolidusAbi/DLIP.git
