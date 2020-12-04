@@ -3,6 +3,7 @@ from torch import nn
 from torch import tensor, Tensor
 
 from . import MatrixEstimator
+from . import Noise
 
 ''' This class contains a Layer-wise training '''
 class AutoEncoder(nn.Module):
@@ -12,16 +13,16 @@ class AutoEncoder(nn.Module):
         self.encode = nn.Sequential(
                 nn.Dropout(p=0.2),
                 nn.Linear(n_in, n_out),
-                nn.ReLU(inplace=True) if g1_relu else nn.Identity(),
-                # nn.ReLU(inplace=True) if g1_relu else nn.Identity(),
+                nn.BatchNorm1d(n_out, affine=True),
+                nn.ReLU(inplace=True),
                 MatrixEstimator(gamma=0.8)
             )
 
         self.decode = nn.Sequential(
                 nn.Dropout(p=0.2),
                 nn.Linear(n_out, n_in),
-                nn.ReLU(inplace=True) if g2_relu else nn.Identity(),
-                # nn.ReLU(inplace=True) if g2_relu else nn.Identity(),
+                # *(nn.ReLU(inplace=True), nn.BatchNorm1d(n_in, affine=True)) if g2_relu else (nn.ReLU(inplace=False),),
+                *(nn.BatchNorm1d(n_in, affine=True), nn.ReLU(inplace=True)) if g2_relu else (nn.Identity(),),
                 MatrixEstimator(gamma=0.8)
             )
 
@@ -29,22 +30,24 @@ class AutoEncoder(nn.Module):
             self.weight_init(m)
 
         self.criterion = nn.MSELoss(reduction='mean')
-        self.optimizer = torch.optim.SGD(self.parameters(), lr=0.1, momentum=0.9)
+        self.optimizer = torch.optim.SGD(self.parameters(), lr=0.1, momentum=0.5)
 
     def get_encode(self, dropout=False):
         encode = []
         for module in self.encode:
-            if dropout or isinstance(module, (nn.Linear, nn.ReLU, MatrixEstimator)):
+            if dropout or isinstance(module, (nn.Linear, nn.ReLU, nn.Sigmoid,
+                            nn.Identity, MatrixEstimator, nn.BatchNorm1d)):
                 encode.append(module)
-        
+
         return nn.Sequential(*encode)
 
     def get_decode(self, dropout=False):
         decode = []
         for module in self.decode:
-            if dropout or isinstance(module, (nn.Linear, nn.ReLU, MatrixEstimator)):
+            if dropout or isinstance(module, (nn.Linear, nn.ReLU, nn.Sigmoid,
+                            nn.Identity, MatrixEstimator, nn.BatchNorm1d)):
                 decode.append(module)
-        
+
         return nn.Sequential(*decode)
 
     def forward(self, x: Tensor) -> Tensor:

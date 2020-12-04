@@ -3,7 +3,7 @@ from torch import tensor, Tensor
 
 from . import MatrixEstimator
 from . import AutoEncoder
-from . import Utils 
+from .utils import sliding_window_iter as sliding 
 
 
 class SDAE(nn.Module):
@@ -24,7 +24,7 @@ class SDAE(nn.Module):
 
         self.ae = []
 
-        for idx, dim in enumerate(Utils.sliding_window_iter(dims, 2)):
+        for idx, dim in enumerate(sliding(dims, 2)):
             encode_relu = False if idx == (len(dims)-2) else True
             decode_relu = False if idx == 0 else True
             self.ae.append( AutoEncoder(*dim, encode_relu, decode_relu) )
@@ -35,16 +35,10 @@ class SDAE(nn.Module):
                         *list(map(lambda ae: ae.get_decode(dropout), self.ae[::-1])) 
                     )
 
-        self.ae = nn.Sequential(*self.ae)
-
-    def layer_wise_training(self, x: Tensor) -> None:
-        self.ae(x)
-
     def get_encode(self, dropout=False) -> nn.Sequential:
         return nn.Sequential(
             *list(map(lambda ae: ae.get_encode(dropout), self.ae))
         )
-
 
     def get_matrix(self, modules = None):
         if modules is None:
